@@ -1,4 +1,5 @@
 ﻿using AuthApp2.Models;
+using AuthApp2.Repositories;
 using AuthApp2.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -13,28 +14,28 @@ namespace AuthApp2.Controllers
     public class AuthController : ControllerBase
     {
         private readonly ITokenService _tokenService;
+        private readonly IUserRepository _userRepository;
         public static List<RefreshToken> _refreshTokens = new();
 
         public AuthController(
-            ITokenService tokenService)
+            ITokenService tokenService, IUserRepository userRepository)
         {
             _tokenService = tokenService;
+            _userRepository = userRepository;
         }
 
         [HttpPost("login")]
         public IActionResult Login(LoginRequest request)
         {
             // Demo user validation
-            if (request.Username != "User123" || request.Password != "Password123!")
+            var user = _userRepository.GetUser(request.Username, request.Password);
+            if (user == null)
                 return Unauthorized();
 
-            var userId = "User123";
-            var role = "Admin";
-
             var accessToken = _tokenService.CreateAccessToken(
-                userId,
-                request.Username,
-                role
+                user.UserId,
+                user.UserName,
+                user.Role
             );
 
             var (refreshToken, refreshTokenHash) = _tokenService.CreateRefreshToken();
@@ -42,7 +43,7 @@ namespace AuthApp2.Controllers
             _refreshTokens.Add(new RefreshToken
             {
                 TokenHash = refreshTokenHash,
-                UserId = userId,
+                UserId = user.UserId,
                 CreatedAt = DateTime.UtcNow,
                 ExpiresAt = DateTime.UtcNow.AddDays(7)
             });
@@ -65,6 +66,16 @@ namespace AuthApp2.Controllers
             if (storedToken == null)
                 return Unauthorized("Invalid refresh token");
 
+
+            var user = _userRepository.GetUserByUserId(storedToken.UserId);
+            if (user == null)
+            {
+                storedToken.IsRevoked = true;
+                return Unauthorized("User not found");
+            }
+            var userId = user.UserName;
+            var role = user.Role;
+
             // Rotate
             storedToken.IsRevoked = true;
 
@@ -79,9 +90,6 @@ namespace AuthApp2.Controllers
                 ExpiresAt = DateTime.UtcNow.AddDays(30),
                 CreatedAt = DateTime.UtcNow
             });
-            
-            var userId = "User123";
-            var role = "Admin";
 
             var newAccessToken = _tokenService.CreateAccessToken(
                 storedToken.UserId,
@@ -109,6 +117,14 @@ namespace AuthApp2.Controllers
 
             return Ok();
         }
+
+        [Authorize]
+        [HttpGet("debug")]
+        public IActionResult Debug()
+        {
+            return Ok(User.Claims.Select(c => new { c.Type, c.Value }));
+        }
+
 
         private static string Hash(string token)
         {

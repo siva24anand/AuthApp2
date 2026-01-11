@@ -1,6 +1,16 @@
 [
   {
     "ContainingType": "AuthApp2.Controllers.AuthController",
+    "Method": "Debug",
+    "RelativePath": "api/auth/debug",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "AuthApp2.Controllers.AuthController",
     "Method": "Login",
     "RelativePath": "api/auth/login",
     "HttpMethod": "POST",
@@ -45,6 +55,16 @@
         "IsRequired": true
       }
     ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "AuthApp2.Controllers.DataController",
+    "Method": "GetSecureData",
+    "RelativePath": "api/Data/secure",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
     "ReturnTypes": []
   }
 ]
